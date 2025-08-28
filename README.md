@@ -3,6 +3,9 @@
 A comprehensive full-stack job board application with role-based access control, job posting, application management, and modern UI/UX.
 ## video of swagger
 https://drive.google.com/file/d/1jQw8Ll_jEj9DZxeAmMKQn2CtAV7dmMzs/view?usp=sharing
+
+## video of project
+https://drive.google.com/file/d/1oEFSsYtOsdpCoXtpwmGHUdZM7fv969on/view?usp=sharing
 ## 🚀 Features
 
 ### 🔐 Authentication & Authorization
