@@ -1,0 +1,59 @@
+import bcrypt from "bcrypt";
+import mongoose from "mongoose";
+import { ProviderType, type IUser } from "./user.dto";
+
+const Schema = mongoose.Schema;
+
+/**
+ * Hash a password using bcrypt
+ *
+ * @param {string} password - The password to hash
+ * @returns {Promise<string>} A promise that resolves to the hashed password
+ */
+export const hashPassword = async (password: string) => {
+  const hash = await bcrypt.hash(password, 12);
+  return hash;
+};
+
+const UserSchema = new Schema<IUser>(
+  {
+    name: { type: String },
+    email: { type: String },
+    active: { type: Boolean, required: false, default: true },
+    role: {
+      type: String,
+      required: true,
+      enum: ["EMPLOYER", "CANDIDATE", "ADMIN"],
+      default: "CANDIDATE",
+    },
+    password: { type: String, select: false },
+    refreshToken: { type: String, required: false, default: "", select: false },
+    blocked: { type: Boolean, default: false },
+    blockReason: { type: String, default: "" },
+    provider: {
+      type: String,
+      enum: Object.values(ProviderType),
+      default: ProviderType.MANUAL,
+    },
+    facebookId: { type: String, select: false },
+    image: { type: String },
+    linkedinId: { type: String, select: false },
+    // Additional fields for role-based data
+    phone: { type: String },
+    location: { type: String },
+    company: { type: String },
+    position: { type: String },
+    skills: [{ type: String }],
+  },
+  { timestamps: true }
+);
+
+UserSchema.pre("save", async function (next) {
+  if (this.password) {
+    this.password = await hashPassword(this.password);
+  }
+  next();
+});
+
+export const UserModel = mongoose.model<IUser>("user", UserSchema);
+export default UserModel;
