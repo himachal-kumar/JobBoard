@@ -239,34 +239,6 @@ The application will be available at:
   - `useDashboardLoader` - Dashboard loading (100ms delay, 1000ms min display)
   - `useTableLoader` - Table data loading (250ms delay, 900ms min display)
 
-### Easy Integration Example
-```tsx
-import { useJobListLoader } from '../hooks/useSkeletonLoader';
-import { JobListSkeleton } from '../components/common/SkeletonLoader';
-
-const JobsPage = () => {
-  const loader = useJobListLoader();
-  const { data: jobs, isLoading } = useJobsQuery();
-
-  useEffect(() => {
-    if (isLoading) {
-      loader.startLoading();
-    } else {
-      loader.stopLoading();
-    }
-  }, [isLoading, loader]);
-
-  return (
-    <div>
-      {loader.renderConditionally(
-        jobs,
-        (jobs) => jobs.map(job => <JobCard key={job.id} job={job} />),
-        () => <JobListSkeleton count={6} />
-      )}
-    </div>
-  );
-};
-```
 
 ## 🐳 Docker Deployment
 
