@@ -28,7 +28,7 @@ import { toast } from 'react-toastify';
 import { useSubmitApplicationMutation } from '../../services/api';
 
 interface LocationState {
-  resumeFile?: string;
+  resumeFile?: File;
   resumeUploaded?: boolean;
 }
 
@@ -109,18 +109,48 @@ const ApplyToJob: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Prepare application data
-      const applicationData = {
-        jobId: jobId,
+      // Check if we have a valid resume file
+      if (!state.resumeFile || !(state.resumeFile instanceof File)) {
+        toast.error('Resume file not found. Please upload your resume first.');
+        return;
+      }
+
+      // Convert file to base64 string for now (until backend supports file uploads)
+      const fileReader = new FileReader();
+      
+      const applicationData = await new Promise((resolve, reject) => {
+        fileReader.onload = () => {
+          const base64String = fileReader.result as string;
+          const applicationData = {
+            jobId: jobId,
+            coverLetter: formData.coverLetter,
+            resume: base64String, // Send as base64 string
+            expectedSalary: formData.expectedSalary ? parseInt(formData.expectedSalary) : undefined,
+            expectedSalaryCurrency: 'USD',
+            availability: formData.availability,
+            notes: formData.notes || undefined,
+          };
+          resolve(applicationData);
+        };
+        
+        fileReader.onerror = () => {
+          reject(new Error('Failed to read resume file'));
+        };
+        
+        fileReader.readAsDataURL(state.resumeFile);
+      });
+
+      // Safe logging - ensure we don't log File objects directly
+      const logData = {
+        jobId,
         coverLetter: formData.coverLetter,
-        resume: state.resumeFile || 'resume.pdf', // Use the uploaded resume filename
-        expectedSalary: formData.expectedSalary ? parseInt(formData.expectedSalary) : undefined,
+        resume: state.resumeFile ? `${state.resumeFile.name} (base64 encoded)` : 'No file',
+        expectedSalary: formData.expectedSalary,
         expectedSalaryCurrency: 'USD',
         availability: formData.availability,
-        notes: formData.notes || undefined,
+        notes: formData.notes
       };
-
-      console.log('Submitting application data:', applicationData);
+      console.log('Submitting application data with base64 resume:', logData);
 
       // Submit application using API
       const result = await submitApplication(applicationData).unwrap();
@@ -142,7 +172,16 @@ const ApplyToJob: React.FC = () => {
         toast.error(result.message || 'Failed to submit application');
       }
     } catch (error: any) {
-      console.error('Application submission error:', error);
+      // Safe error logging - avoid logging File objects
+      const safeError = error && typeof error === 'object' ? 
+        JSON.parse(JSON.stringify(error, (key, value) => {
+          if (value instanceof File) {
+            return `[File: ${value.name}]`;
+          }
+          return value;
+        })) : error;
+      
+      console.error('Application submission error:', safeError);
       
       // Handle different types of error responses
       let errorMessage = 'Failed to submit application. Please try again.';
@@ -155,15 +194,27 @@ const ApplyToJob: React.FC = () => {
         return;
       }
       
-      // Check for other error types
+      // Check for other error types and ensure we don't try to render File objects
       if (error?.data?.message) {
-        errorMessage = error.data.message;
+        errorMessage = String(error.data.message);
       } else if (error?.error?.message) {
-        errorMessage = error.error.message;
+        errorMessage = String(error.error.message);
       } else if (error?.message) {
-        errorMessage = error.message;
+        errorMessage = String(error.message);
       } else if (typeof error === 'string') {
         errorMessage = error;
+      } else if (error && typeof error === 'object') {
+        // Safely convert object to string, avoiding File objects
+        try {
+          errorMessage = JSON.stringify(error, (key, value) => {
+            if (value instanceof File) {
+              return `[File: ${value.name}]`;
+            }
+            return value;
+          });
+        } catch {
+          errorMessage = 'An error occurred during application submission';
+        }
       }
       
       toast.error(errorMessage);
@@ -222,7 +273,7 @@ const ApplyToJob: React.FC = () => {
               Resume Uploaded Successfully
             </Typography>
             <Typography variant="body2">
-              File: {state.resumeFile}
+              File: {state.resumeFile ? state.resumeFile.name : 'No file selected'}
             </Typography>
           </Alert>
         )}
@@ -341,7 +392,7 @@ const ApplyToJob: React.FC = () => {
                     Resume File
                   </Typography>
                   <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                    {state.resumeFile}
+                    {state.resumeFile ? state.resumeFile.name : 'No file selected'}
                   </Typography>
                 </Grid>
 

@@ -106,7 +106,10 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({
                   {selectedFile.name}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {formatFileSize(selectedFile.size)}
+                  {formatFileSize(selectedFile.size)} • {selectedFile.type || 'Unknown type'}
+                </Typography>
+                <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
+                  ✓ File ready for upload
                 </Typography>
               </Box>
             </Box>
@@ -115,9 +118,17 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({
               color="error"
               onClick={onResumeRemove}
               disabled={isUploading}
+              title="Remove file"
             >
               <DeleteIcon />
             </IconButton>
+          </Box>
+          
+          {/* File validation info */}
+          <Box sx={{ mt: 1, p: 1, backgroundColor: 'info.50', borderRadius: 1 }}>
+            <Typography variant="caption" color="info.main">
+              <strong>File attached to application:</strong> This resume will be submitted with your job application.
+            </Typography>
           </Box>
         </Paper>
       )}

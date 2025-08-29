@@ -1,6 +1,6 @@
 # Job Board Frontend
 
-A modern React-based frontend for a job board platform with Material-UI components, Redux state management, and comprehensive job application functionality.
+A modern React-based frontend for a job board platform with Material-UI components, Redux state management, comprehensive job application functionality, advanced theming system, and professional skeleton loaders.
 
 ## 🚀 Features
 
@@ -34,13 +34,31 @@ A modern React-based frontend for a job board platform with Material-UI componen
 - **Real-time updates** with RTK Query
 - **Application statistics** and insights
 
+### 🎨 Advanced Theme System
+- **Dual Theme Support**: Professional light and dark themes
+- **Automatic Detection**: System preference and user choice detection
+- **Theme Persistence**: Remembers user's theme selection
+- **Enhanced Components**: Professional styling for all UI elements
+- **Modern Color Palette**: Carefully selected colors with proper contrast
+- **Smooth Animations**: Hover effects, transitions, and micro-interactions
+- **Accessibility First**: WCAG compliant design with focus indicators
+
+### ⚡ Professional Skeleton Loaders
+- **20+ Pre-built Skeletons**: Job cards, forms, tables, dashboards
+- **Smart Loading Management**: Configurable delays and minimum display times
+- **Theme Integration**: Automatically adapts to light/dark themes
+- **Performance Optimized**: Efficient state management and cleanup
+- **Multiple Animation Variants**: Wave, pulse, and shimmer effects
+- **Easy Integration**: Simple hook-based API with TypeScript support
+
 ### 🎨 UI/UX Features
 - **Material-UI (MUI)** components for modern design
 - **Responsive design** for all device sizes
-- **Dark/Light theme** support
-- **Loading states** and error handling
+- **Dark/Light theme** support with automatic switching
+- **Professional loading states** with skeleton screens
 - **Toast notifications** for user feedback
 - **Form validation** with real-time feedback
+- **Smooth transitions** and micro-interactions
 
 ## 🏗️ Architecture
 
@@ -48,7 +66,7 @@ A modern React-based frontend for a job board platform with Material-UI componen
 frontend/
 ├── src/
 │   ├── components/          # Reusable UI components
-│   │   ├── common/          # Shared components (Header, Footer)
+│   │   ├── common/          # Shared components (Header, Footer, Skeletons)
 │   │   ├── candidates/      # Candidate-specific components
 │   │   ├── employers/       # Employer-specific components
 │   │   └── forms/           # Form components
@@ -58,13 +76,16 @@ frontend/
 │   │   └── auth/            # Authentication pages
 │   ├── services/            # API service layer
 │   ├── store/               # Redux store and reducers
-│   ├── hooks/               # Custom React hooks
+│   ├── hooks/               # Custom React hooks (including skeleton loaders)
 │   ├── types/               # TypeScript type definitions
-│   ├── themes/              # Material-UI theme configuration
+│   ├── themes/              # Advanced Material-UI theme system
+│   ├── contexts/            # Theme context and providers
 │   └── utils/               # Utility functions
 ├── public/                  # Static assets
 ├── package.json             # Dependencies
-└── vite.config.ts          # Vite configuration
+├── vite.config.ts          # Vite configuration
+├── THEME_DOCUMENTATION.md   # Comprehensive theme system guide
+└── SKELETON_LOADER_DOCUMENTATION.md # Skeleton loader system guide
 ```
 
 ## 🛠️ Tech Stack
@@ -78,11 +99,13 @@ frontend/
 - **Material-UI (MUI)** - Comprehensive component library
 - **Emotion** - CSS-in-JS styling solution
 - **Responsive Design** - Mobile-first approach
+- **Advanced Theming** - Custom theme system with dark mode
 
 ### State Management
 - **Redux Toolkit** - Modern Redux with simplified API
 - **RTK Query** - Powerful data fetching and caching
 - **React Redux** - React bindings for Redux
+- **Context API** - Theme state management
 
 ### Routing & Navigation
 - **React Router v6** - Client-side routing
@@ -144,10 +167,18 @@ npm run type-check   # Run TypeScript type checking
 ## 📱 Component Structure
 
 ### Common Components
-- **Header**: Main navigation with user menu
+- **Header**: Main navigation with user menu and theme toggle
 - **Footer**: Application footer
 - **LoadingSpinner**: Loading state component
 - **ErrorBoundary**: Error handling wrapper
+
+### Skeleton Components
+- **JobCardSkeleton**: Professional job card loading states
+- **FormSkeleton**: Form layout placeholders
+- **TableSkeleton**: Data table loading states
+- **DashboardSkeleton**: Dashboard layout placeholders
+- **UserProfileSkeleton**: Profile page loading states
+- **LoadingOverlaySkeleton**: Full-screen loading overlay
 
 ### Candidate Components
 - **JobCard**: Individual job listing display
@@ -166,6 +197,77 @@ npm run type-check   # Run TypeScript type checking
 - **JobApplicationForm**: Job application submission
 - **ProfileForm**: User profile management
 
+## 🎨 Advanced Theme System
+
+### Dual Theme Support
+- **Light Theme**: Clean, professional design with modern blue/purple color scheme
+- **Dark Theme**: Sophisticated dark mode with optimized contrast
+- **Automatic Detection**: Respects system theme preference
+- **Theme Persistence**: Remembers user's choice across sessions
+
+### Enhanced Components
+- **Modern Color Palette**: Professional colors with proper contrast ratios
+- **Enhanced Typography**: Optimized font weights, sizes, and line heights
+- **Improved Shadows**: Subtle, layered shadow system for depth
+- **Smooth Animations**: Hover effects, transitions, and micro-interactions
+
+### Theme Features
+- **Theme Toggle**: Easy switching between light and dark modes
+- **System Preference Sync**: Updates when system theme changes
+- **Responsive Design**: Mobile-first approach with breakpoint optimization
+- **Accessibility**: High contrast support and focus indicators
+
+### Custom CSS Classes
+- **Animation Classes**: Fade, slide, scale, and bounce effects
+- **Effect Classes**: Gradient text, glass morphism, shimmer loading
+- **Utility Classes**: Enhanced hover effects and transitions
+
+## ⚡ Skeleton Loader System
+
+### Comprehensive Component Library
+- **Job-related Skeletons**: Job cards, application cards, job lists
+- **UI Component Skeletons**: Forms, tables, navigation, search bars
+- **Layout Skeletons**: Dashboards, user profiles, filters
+- **Special Effects**: Loading overlays, shimmer effects, pagination
+
+### Smart Loading Management
+- **Intelligent Timing**: Configurable delays and minimum display times
+- **Smooth Transitions**: Prevents flickering and jarring changes
+- **Performance Optimized**: Efficient state management and cleanup
+
+### Hook System
+- **useSkeletonLoader**: Main hook for managing loading states
+- **Specialized Hooks**: Optimized for different use cases
+  - `useJobListLoader` - Job listing pages
+  - `useFormLoader` - Form loading states
+  - `useProfileLoader` - Profile page loading
+  - `useDashboardLoader` - Dashboard loading
+  - `useTableLoader` - Table data loading
+
+### Easy Integration
+```tsx
+import { useJobListLoader } from '../hooks/useSkeletonLoader';
+import { JobListSkeleton } from '../components/common/SkeletonLoader';
+
+const loader = useJobListLoader();
+const { data: jobs, isLoading } = useJobsQuery();
+
+useEffect(() => {
+  if (isLoading) loader.startLoading();
+  else loader.stopLoading();
+}, [isLoading, loader]);
+
+return (
+  <div>
+    {loader.renderConditionally(
+      jobs,
+      (jobs) => jobs.map(job => <JobCard key={job.id} job={job} />),
+      () => <JobListSkeleton count={6} />
+    )}
+  </div>
+);
+```
+
 ## 🎨 Theme & Styling
 
 ### Material-UI Theme
@@ -173,12 +275,19 @@ npm run type-check   # Run TypeScript type checking
 - **Typography system** with proper hierarchy
 - **Spacing system** for consistent layouts
 - **Component variants** for different use cases
+- **Enhanced shadows** and elevation system
 
 ### Responsive Design
 - **Mobile-first approach** with progressive enhancement
 - **Breakpoint system** for different screen sizes
 - **Touch-friendly interactions** for mobile devices
 - **Accessibility features** for inclusive design
+
+### Animation System
+- **Smooth Transitions**: 0.2s cubic-bezier transitions
+- **Hover Effects**: Elevation changes and transforms
+- **Loading Animations**: Wave, pulse, and shimmer effects
+- **Micro-interactions**: Subtle feedback for user actions
 
 ## 🔐 Authentication Flow
 
@@ -244,6 +353,11 @@ interface AuthState {
 - **Static Asset Caching**: Efficient asset delivery
 - **Browser Caching**: Optimized caching headers
 
+### Skeleton Loading
+- **Smart Timing**: Prevents unnecessary skeleton flashing
+- **Performance Perception**: App feels faster with smooth transitions
+- **Efficient Rendering**: Optimized skeleton component rendering
+
 ## 🔧 Development Features
 
 ### Hot Reload
@@ -255,6 +369,7 @@ interface AuthState {
 - **Redux DevTools**: State management debugging
 - **React DevTools**: Component inspection
 - **Console Logging**: Comprehensive logging system
+- **Theme Inspector**: Theme system debugging
 
 ### Code Quality
 - **ESLint**: Code linting and style enforcement
@@ -279,13 +394,16 @@ xl: 1536px   // Extra large devices
 - **Optimized layouts** for small screens
 - **Progressive disclosure** for complex information
 - **Fast loading** on mobile networks
+- **Skeleton loading** for mobile performance
 
 ## 🎯 User Experience
 
 ### Loading States
-- **Skeleton Screens**: Content placeholders during loading
+- **Professional Skeleton Screens**: Content placeholders during loading
+- **Smart Timing**: Configurable delays and minimum display times
 - **Progress Indicators**: Upload and processing progress
 - **Loading Spinners**: Action feedback
+- **Theme-aware Loading**: Adapts to light/dark themes
 
 ### Error Handling
 - **User-friendly Messages**: Clear error explanations
@@ -297,8 +415,25 @@ xl: 1536px   // Extra large devices
 - **Keyboard Navigation**: Full keyboard accessibility
 - **Color Contrast**: WCAG compliance
 - **Focus Management**: Proper focus handling
+- **Reduced Motion Support**: Respects user preferences
 
 ## 🔄 Recent Updates
+
+### Advanced Theme System ✅
+- **Dual Theme Support**: Professional light and dark themes
+- **Automatic Detection**: System preference and user choice detection
+- **Theme Persistence**: Remembers user's theme selection
+- **Enhanced Components**: Professional styling for all UI elements
+- **Modern Color Palette**: Carefully selected colors with proper contrast
+- **Smooth Animations**: Hover effects, transitions, and micro-interactions
+
+### Professional Skeleton Loaders ✅
+- **20+ Pre-built Skeletons**: Job cards, forms, tables, dashboards
+- **Smart Loading Management**: Configurable delays and minimum display times
+- **Theme Integration**: Automatically adapts to light/dark themes
+- **Performance Optimized**: Efficient state management and cleanup
+- **Multiple Animation Variants**: Wave, pulse, and shimmer effects
+- **Easy Integration**: Simple hook-based API with TypeScript support
 
 ### Multi-Step Application Flow ✅
 - **Resume Upload**: File validation and progress tracking
@@ -319,11 +454,13 @@ xl: 1536px   // Extra large devices
 - **Material-UI Components**: Modern, responsive design
 - **Navigation**: Clean, intuitive navigation structure
 - **Responsive Design**: Mobile-friendly interface
+- **Professional Loading States**: Skeleton screens and smooth transitions
 
 ### Performance Optimizations ✅
 - **Code Splitting**: Route-based bundle splitting
 - **Lazy Loading**: Component and icon lazy loading
 - **Caching**: Intelligent API response caching
+- **Skeleton Loading**: Performance perception optimization
 
 ## 🧪 Testing
 
@@ -331,6 +468,8 @@ xl: 1536px   // Extra large devices
 - **Unit Tests**: Component and utility testing
 - **Integration Tests**: API integration testing
 - **E2E Tests**: End-to-end user flow testing
+- **Theme Testing**: Light/dark theme functionality
+- **Skeleton Testing**: Loading state behavior
 
 ### Testing Tools
 - **Jest**: Test runner and assertion library
@@ -349,11 +488,25 @@ npm run preview      # Preview production build locally
 - **Optimized Bundles**: Minified and compressed code
 - **Asset Optimization**: Optimized images and fonts
 - **Performance Monitoring**: Core Web Vitals tracking
+- **Theme Optimization**: Efficient theme switching
 
 ### Deployment Options
 - **Static Hosting**: Netlify, Vercel, GitHub Pages
 - **CDN Integration**: Global content delivery
 - **Environment Configuration**: Production environment setup
+
+## 📚 Documentation
+
+### Comprehensive Guides
+- **THEME_DOCUMENTATION.md**: Complete theme system guide
+- **SKELETON_LOADER_DOCUMENTATION.md**: Skeleton loader system guide
+- **Component Documentation**: Inline JSDoc comments
+- **API Documentation**: Service layer documentation
+
+### Examples and Demos
+- **Theme Demo Page**: Interactive theme showcase
+- **Skeleton Showcase**: All skeleton components demonstration
+- **Code Examples**: Usage patterns and best practices
 
 ## 🤝 Contributing
 
@@ -361,7 +514,8 @@ npm run preview      # Preview production build locally
 2. Create a feature branch
 3. Make your changes
 4. Add tests if applicable
-5. Submit a pull request
+5. Update documentation
+6. Submit a pull request
 
 ## 📄 License
 
@@ -371,6 +525,7 @@ This project is licensed under the MIT License.
 
 For support and questions:
 - Check the component documentation
+- Review the theme and skeleton loader guides
 - Review the code comments and JSDoc
 - Open an issue on the repository
 
@@ -379,4 +534,5 @@ For support and questions:
 - **Frontend**: http://localhost:5174
 - **Backend API**: http://localhost:5000/api
 - **API Documentation**: http://localhost:5000/api-docs
+- **Theme Demo**: http://localhost:5174/theme-demo
 - **GitHub Repository**: [Repository URL]

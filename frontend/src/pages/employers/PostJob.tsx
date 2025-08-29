@@ -71,6 +71,26 @@ const PostJob: React.FC = () => {
     }
   }, [isAuthenticated, isEmployer, navigate, userData]);
 
+  // ALL HOOKS MUST BE CALLED AT THE TOP BEFORE ANY CONDITIONAL RETURNS
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    jobType: '',
+    location: '',
+    skills: [] as string[],
+    experienceLevel: '',
+    salaryMin: 0,
+    salaryMax: 0,
+    salaryCurrency: 'USD',
+    isRemote: false,
+    benefits: [] as string[],
+    deadline: '',
+    requirements: '',
+    responsibilities: '',
+  });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   // Show loading while checking authentication
   if (userLoading) {
     return (
@@ -101,25 +121,6 @@ const PostJob: React.FC = () => {
       </Container>
     );
   }
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    jobType: '',
-    location: '',
-    skills: [] as string[],
-    experienceLevel: '',
-    salaryMin: 0,
-    salaryMax: 0,
-    salaryCurrency: 'USD',
-    isRemote: false,
-    category: '',
-    benefits: [] as string[],
-    deadline: '',
-    requirements: '',
-    responsibilities: '',
-  });
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Available options
   const jobTypes: { value: JobType; label: string }[] = [
@@ -137,11 +138,7 @@ const PostJob: React.FC = () => {
     { value: 'LEAD', label: 'Lead' },
   ];
 
-  const categories = [
-    'Technology', 'Healthcare', 'Marketing', 'Design', 'Data & Analytics',
-    'Finance', 'Education', 'Sales', 'Customer Service', 'Engineering',
-    'Human Resources', 'Legal', 'Manufacturing', 'Retail', 'Consulting'
-  ];
+
 
   const availableSkills = [
     'React', 'Node.js', 'Python', 'JavaScript', 'TypeScript', 'Java', 'SQL',
@@ -212,7 +209,6 @@ const PostJob: React.FC = () => {
         if (!formData.description.trim()) newErrors.description = 'Job description is required';
         if (!formData.jobType || formData.jobType === '') newErrors.jobType = 'Job type is required';
         if (!formData.location.trim()) newErrors.location = 'Location is required';
-        if (!formData.category || formData.category === '') newErrors.category = 'Category is required';
         break;
       case 1: // Requirements & Skills
         if (!formData.experienceLevel || formData.experienceLevel === '') newErrors.experienceLevel = 'Experience level is required';
@@ -292,8 +288,8 @@ const PostJob: React.FC = () => {
           responsibilities: formData.responsibilities.split('\n').filter(resp => resp.trim()),
           company: userData?.data?.company || 'Company not specified',
           location: formData.location,
-          type: formData.jobType,
-          experience: formData.experienceLevel,
+          type: formData.jobType as "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP",
+          experience: formData.experienceLevel as "ENTRY" | "JUNIOR" | "MID" | "SENIOR" | "LEAD",
           salaryMin: formData.salaryMin,
           salaryMax: formData.salaryMax,
           salaryCurrency: formData.salaryCurrency,
@@ -371,23 +367,7 @@ const PostJob: React.FC = () => {
               </FormControl>
             </Grid>
             
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth required error={Boolean(errors.category)}>
-                <InputLabel>Category</InputLabel>
-                <Select
-                  value={formData.category}
-                  onChange={(e) => handleFieldChange('category', e.target.value)}
-                  label="Category"
-                >
-                  {categories.map((category) => (
-                    <MenuItem key={category} value={category}>
-                      {category}
-                    </MenuItem>
-                  ))}
-                </Select>
-                {errors.category && <FormHelperText>{errors.category}</FormHelperText>}
-              </FormControl>
-            </Grid>
+
             
             <Grid item xs={12} md={6}>
               <TextField

@@ -54,6 +54,7 @@ interface StandaloneJobApplicationFormProps {
 interface JobApplicationFormData {
   coverLetter: string;
   resume: File;
+  mobileNumber: string;
   expectedSalary?: number;
   availability?: string;
   additionalNotes?: string;
@@ -80,6 +81,10 @@ const validationSchema = yup.object({
       const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
       return allowedTypes.includes((value as File).type);
     }),
+  mobileNumber: yup
+    .string()
+    .required('Mobile number is required')
+    .matches(/^\+?[\d\s\-\(\)]+$/, 'Please enter a valid mobile number'),
   expectedSalary: yup
     .number()
     .min(0, 'Expected salary must be positive')
@@ -116,6 +121,7 @@ const StandaloneJobApplicationForm: React.FC<StandaloneJobApplicationFormProps> 
     mode: 'onChange',
     defaultValues: {
       coverLetter: '',
+      mobileNumber: '',
       expectedSalary: job.salary?.min || 0,
       availability: 'immediate',
       additionalNotes: '',
@@ -167,6 +173,7 @@ const StandaloneJobApplicationForm: React.FC<StandaloneJobApplicationFormProps> 
         expectedSalaryCurrency: 'USD',
         availability: data.availability || 'NEGOTIABLE',
         notes: data.additionalNotes,
+        mobileNumber: data.mobileNumber,
       };
 
       const result = await submitApplication(applicationData).unwrap();
@@ -317,6 +324,26 @@ const StandaloneJobApplicationForm: React.FC<StandaloneJobApplicationFormProps> 
         {errors.resume && (
           <FormHelperText error>{errors.resume.message}</FormHelperText>
         )}
+      </Box>
+
+      {/* Mobile Number */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+          Mobile Number *
+        </Typography>
+        <Controller
+          name="mobileNumber"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              {...field}
+              fullWidth
+              placeholder="Enter your mobile number (e.g., +1 555 123 4567)"
+              error={!!errors.mobileNumber}
+              helperText={errors.mobileNumber?.message || "We'll use this to contact you about your application"}
+            />
+          )}
+        />
       </Box>
 
       {/* Expected Salary */}

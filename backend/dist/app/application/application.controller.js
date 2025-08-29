@@ -14,6 +14,17 @@ const application_service_1 = require("./application.service");
 const application_dto_1 = require("./application.dto");
 const class_validator_1 = require("class-validator");
 class ApplicationController {
+    /**
+     * Creates a new job application
+     * @summary Create job application
+     * @description Submit a new job application (Candidate only)
+     * @tags [Applications]
+     * @security BearerAuth
+     * @param {CreateApplicationDto} applicationData - Application data
+     * @param {AuthRequest} req - Express request
+     * @param {Response} res - Express response
+     * @returns {Promise<void>}
+     */
     static createApplication(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -106,6 +117,17 @@ class ApplicationController {
             try {
                 const query = new application_dto_1.ApplicationQueryDto();
                 Object.assign(query, req.query);
+                // Validate user ID
+                if (!req.user || !req.user._id) {
+                    res.status(401).json({ message: "User not authenticated" });
+                    return;
+                }
+                // Ensure user ID is a string
+                const userId = req.user._id.toString();
+                if (!userId) {
+                    res.status(401).json({ message: "Invalid user ID" });
+                    return;
+                }
                 const errors = yield (0, class_validator_1.validate)(query);
                 if (errors.length > 0) {
                     res.status(400).json({
@@ -117,7 +139,7 @@ class ApplicationController {
                     });
                     return;
                 }
-                const result = yield application_service_1.ApplicationService.getApplicationsByCandidate(req.user._id, query);
+                const result = yield application_service_1.ApplicationService.getApplicationsByCandidate(userId, query);
                 res.json({
                     message: "Applications retrieved successfully",
                     data: result.applications,
@@ -130,6 +152,7 @@ class ApplicationController {
                 });
             }
             catch (error) {
+                console.error('Error in getApplicationsByCandidate:', error);
                 res.status(500).json({
                     message: "Failed to retrieve applications",
                     error: error.message
@@ -139,9 +162,20 @@ class ApplicationController {
     }
     static getApplicationsByEmployer(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             try {
                 const query = new application_dto_1.ApplicationQueryDto();
                 Object.assign(query, req.query);
+                // Debug logging
+                console.log('getApplicationsByEmployer - User:', req.user);
+                console.log('getApplicationsByEmployer - User ID:', (_a = req.user) === null || _a === void 0 ? void 0 : _a._id);
+                console.log('getApplicationsByEmployer - User ID type:', typeof ((_b = req.user) === null || _b === void 0 ? void 0 : _b._id));
+                if (!req.user || !req.user._id) {
+                    res.status(400).json({
+                        message: "User not authenticated or user ID missing"
+                    });
+                    return;
+                }
                 const errors = yield (0, class_validator_1.validate)(query);
                 if (errors.length > 0) {
                     res.status(400).json({
@@ -153,7 +187,10 @@ class ApplicationController {
                     });
                     return;
                 }
-                const result = yield application_service_1.ApplicationService.getApplicationsByEmployer(req.user._id, query);
+                // Ensure user ID is converted to string
+                const userId = req.user._id.toString();
+                console.log('getApplicationsByEmployer - Converted User ID:', userId);
+                const result = yield application_service_1.ApplicationService.getApplicationsByEmployer(userId, query);
                 res.json({
                     message: "Applications retrieved successfully",
                     data: result.applications,
@@ -166,6 +203,7 @@ class ApplicationController {
                 });
             }
             catch (error) {
+                console.error('Error in getApplicationsByEmployer:', error);
                 res.status(500).json({
                     message: "Failed to retrieve applications",
                     error: error.message

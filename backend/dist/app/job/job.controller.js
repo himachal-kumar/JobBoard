@@ -14,6 +14,46 @@ const job_service_1 = require("./job.service");
 const job_dto_1 = require("./job.dto");
 const class_validator_1 = require("class-validator");
 class JobController {
+    /**
+     * Creates a new job posting.
+     *
+     * @swagger
+     * /jobs:
+     *   post:
+     *     summary: Create job
+     *     description: Create a new job posting (Employer only)
+     *     tags: [Jobs]
+     *     security:
+     *       - BearerAuth: []
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/CreateJobDto'
+     *     responses:
+     *       201:
+     *         description: Job created successfully
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 success:
+     *                   type: boolean
+     *                 data:
+     *                   $ref: '#/components/schemas/Job'
+     *                 message:
+     *                   type: string
+     *       400:
+     *         description: Bad request - validation errors
+     *       401:
+     *         description: Unauthorized
+     *       403:
+     *         description: Forbidden - Employer access required
+     *       500:
+     *         description: Internal server error
+     */
     static createJob(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -79,6 +119,45 @@ class JobController {
             }
         });
     }
+    /**
+     * Deletes a job posting.
+     *
+     * @swagger
+     * /jobs/{jobId}:
+     *   delete:
+     *     summary: Delete job
+     *     description: Delete a job posting (Employer only)
+     *     tags: [Jobs]
+     *     security:
+     *       - BearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: jobId
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: Job ID
+     *     responses:
+     *       200:
+     *         description: Job deleted successfully
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 success:
+     *                   type: boolean
+     *                 message:
+     *                   type: string
+     *       401:
+     *         description: Unauthorized
+     *       403:
+     *         description: Forbidden - Employer access required
+     *       404:
+     *         description: Job not found
+     *       500:
+     *         description: Internal server error
+     */
     static deleteJob(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -120,6 +199,12 @@ class JobController {
             }
         });
     }
+    /**
+     * Retrieve all jobs posted by the authenticated employer
+     * @param req Express request object
+     * @param res Express response object
+     * @returns Promise that resolves to nothing
+     */
     static getJobsByEmployer(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -168,6 +253,12 @@ class JobController {
             }
         });
     }
+    /**
+     * Test endpoint for job search functionality
+     * @param req Express request object
+     * @param res Express response object
+     * @returns Promise that resolves to nothing
+     */
     static testSearch(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -203,6 +294,14 @@ class JobController {
             }
         });
     }
+    /**
+     * Close a job posting as an employer
+     * @param req Express request object with `jobId` in the URL parameters
+     * @param res Express response object
+     * @returns Promise that resolves to nothing
+     * @throws 404 if job not found or access denied
+     * @throws 500 if an internal server error occurs
+     */
     static closeJob(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {

@@ -91,14 +91,14 @@ const ResumeUploadPage: React.FC = () => {
     toast.success('Resume uploaded successfully!');
   };
 
-  const handleContinueToApplication = () => {
+    const handleContinueToApplication = () => {
     if (uploadComplete && selectedFile) {
-      // Navigate to the job application page
+      // Navigate to the job application page with the actual file object
       navigate(`/job/${jobId}/apply`, { 
         state: { 
-          resumeFile: selectedFile.name,
+          resumeFile: selectedFile, // Pass the actual File object, not just the name
           resumeUploaded: true 
-        } 
+        }
       });
     }
   };

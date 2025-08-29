@@ -20,7 +20,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Chip,
   Alert,
   LinearProgress,
   Paper,
@@ -31,13 +30,12 @@ import {
 import ApplicationSuccessDialog from '../common/ApplicationSuccessDialog';
 import ResumeUpload from '../common/ResumeUpload';
 import {
-  CloudUpload as UploadIcon,
-  Description as FileIcon,
   Close as CloseIcon,
   Work as WorkIcon,
   Business as CompanyIcon,
   LocationOn as LocationIcon,
   AttachMoney as SalaryIcon,
+  Phone as PhoneIcon,
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -86,6 +84,10 @@ const validationSchema = yup.object({
       const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
       return allowedTypes.includes((value as File).type);
     }),
+  mobileNumber: yup
+    .string()
+    .required('Mobile number is required')
+    .matches(/^\+?[\d\s\-\(\)]+$/, 'Please enter a valid mobile number'),
   expectedSalary: yup
     .number()
     .min(0, 'Expected salary must be positive')
@@ -115,33 +117,31 @@ const JobApplicationForm: React.FC<JobApplicationFormProps> = ({
   onApplicationSuccess,
   standalone = false,
 }) => {
-  const { isCandidate } = useAuth();
   const [submitApplication, { isLoading }] = useSubmitApplicationMutation();
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [submittedApplicationId, setSubmittedApplicationId] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     control,
     handleSubmit,
     formState: { errors, isValid },
     setValue,
-    watch,
     reset,
   } = useForm<JobApplicationFormData>({
     resolver: yupResolver(validationSchema),
     mode: 'onChange',
     defaultValues: {
       coverLetter: '',
+      mobileNumber: '',
       expectedSalary: job.salary.min || 0,
       availability: 'immediate',
       additionalNotes: '',
     },
   });
-
-  const watchedValues = watch();
 
   /**
    * Handle file selection
@@ -152,53 +152,25 @@ const JobApplicationForm: React.FC<JobApplicationFormProps> = ({
   };
 
   /**
-   * Handle file upload simulation
-   */
-  const simulateFileUpload = async (): Promise<void> => {
-    setUploading(true);
-    setUploadProgress(0);
-    
-    // Simulate upload progress
-    for (let i = 0; i <= 100; i += 10) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      setUploadProgress(i);
-    }
-    
-    setUploading(false);
-  };
-
-  /**
    * Handle form submission
    */
   const handleFormSubmit = async (data: JobApplicationFormData) => {
+    if (!selectedFile) {
+      toast.error('Please select a resume file');
+      return;
+    }
+
     try {
-      // Check if user is candidate
-      if (!isCandidate) {
-        toast.error('Only candidates can apply for jobs');
-        return;
-      }
-
-      // Handle file upload first
-      if (selectedFile) {
-        setUploading(true);
-        setUploadProgress(0);
-        
-        // Simulate file upload
-        for (let i = 0; i <= 100; i += 10) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          setUploadProgress(i);
-        }
-        
-        setUploading(false);
-      }
-
-      // Submit application to backend
+      setIsSubmitting(true);
+      
+      // Create FormData for file upload
       const applicationData = {
         jobId: job._id,
         coverLetter: data.coverLetter,
-        resume: selectedFile ? selectedFile.name : 'resume.pdf', // Use actual filename
+        resume: selectedFile.name, // In real app, this would be the uploaded file URL
+        mobileNumber: data.mobileNumber,
         expectedSalary: data.expectedSalary,
-        expectedSalaryCurrency: 'USD',
+        expectedSalaryCurrency: job.salary.currency || 'USD',
         availability: data.availability || 'NEGOTIABLE',
         notes: data.additionalNotes,
       };
@@ -210,7 +182,7 @@ const JobApplicationForm: React.FC<JobApplicationFormProps> = ({
       console.log('Application data sent:', applicationData);
       
       // Store the application ID and show success dialog
-      const applicationId = result.data?._id || result.data?.id || '';
+      const applicationId = result.data?._id || '';
       setSubmittedApplicationId(applicationId);
       setShowSuccessDialog(true);
       
@@ -233,6 +205,8 @@ const JobApplicationForm: React.FC<JobApplicationFormProps> = ({
     } catch (error: any) {
       console.error('Error submitting application:', error);
       toast.error(error?.data?.message || 'Failed to submit application. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -245,27 +219,6 @@ const JobApplicationForm: React.FC<JobApplicationFormProps> = ({
     if (onClose) {
       onClose();
     }
-  };
-
-  /**
-   * Format file size for display
-   */
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  /**
-   * Get file type icon
-   */
-  const getFileIcon = (fileName: string) => {
-    const extension = fileName.split('.').pop()?.toLowerCase();
-    if (extension === 'pdf') return '📄';
-    if (['doc', 'docx'].includes(extension || '')) return '📝';
-    return '📎';
   };
 
   return (
@@ -311,13 +264,13 @@ const JobApplicationForm: React.FC<JobApplicationFormProps> = ({
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                 <WorkIcon sx={{ mr: 1, color: 'primary.main' }} />
                 <Typography variant="body2" color="text.secondary">
-                  {job.jobType}
+                  {job.type}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <SalaryIcon sx={{ mr: 1, color: 'primary.main' }} />
                 <Typography variant="body2" color="text.secondary">
-                  {job.salaryCurrency} {job.salaryMin.toLocaleString()} - {job.salaryMax.toLocaleString()}
+                  {job.salary.currency} {job.salary.min.toLocaleString()} - {job.salary.max.toLocaleString()}
                 </Typography>
               </Box>
             </Grid>
@@ -337,6 +290,31 @@ const JobApplicationForm: React.FC<JobApplicationFormProps> = ({
             uploadProgress={uploadProgress}
             error={errors.resume?.message}
           />
+
+          {/* Mobile Number */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Contact Information
+            </Typography>
+            <Controller
+              name="mobileNumber"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  fullWidth
+                  label="Mobile Number"
+                  placeholder="Enter your mobile number (e.g., +1 555 123 4567)"
+                  variant="outlined"
+                  error={Boolean(errors.mobileNumber)}
+                  helperText={errors.mobileNumber?.message || "We'll use this to contact you about your application"}
+                  InputProps={{
+                    startAdornment: <PhoneIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+                  }}
+                />
+              )}
+            />
+          </Box>
 
           {/* Cover Letter */}
           <Box sx={{ mb: 3 }}>
@@ -384,7 +362,7 @@ const JobApplicationForm: React.FC<JobApplicationFormProps> = ({
                     error={Boolean(errors.expectedSalary)}
                     helperText={errors.expectedSalary?.message}
                     InputProps={{
-                      startAdornment: <Typography sx={{ mr: 1 }}>{job.salaryCurrency}</Typography>,
+                      startAdornment: <Typography sx={{ mr: 1 }}>{job.salary.currency}</Typography>,
                     }}
                   />
                 )}
@@ -472,7 +450,7 @@ const JobApplicationForm: React.FC<JobApplicationFormProps> = ({
         <Button
           onClick={handleSubmit(handleFormSubmit)}
           variant="contained"
-          disabled={!isValid || uploading}
+          disabled={!isValid || uploading || isSubmitting}
           size="large"
         >
           Submit Application

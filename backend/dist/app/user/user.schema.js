@@ -52,6 +52,7 @@ const UserSchema = new Schema({
     linkedinId: { type: String, select: false },
     // Additional fields for role-based data
     phone: { type: String },
+    mobile: { type: String }, // Add mobile field
     location: { type: String },
     company: { type: String },
     position: { type: String },

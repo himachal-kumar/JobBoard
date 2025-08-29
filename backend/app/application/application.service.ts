@@ -1,6 +1,9 @@
-import { ApplicationModel, type IApplication } from "./application.schema";
+import mongoose from "mongoose";
+import { ApplicationModel, IApplication } from "./application.schema";
 import { JobModel } from "../job/job.schema";
+import { UserModel } from "../user/user.schema"; // Add UserModel import
 import { CreateApplicationDto, UpdateApplicationStatusDto, ApplicationQueryDto } from "./application.dto";
+import { sendEmail, applicationAcceptedEmailTemplate, applicationRejectedEmailTemplate, applicationShortlistedEmailTemplate } from "../common/services/email.service";
 
 export class ApplicationService {
   /**
@@ -28,10 +31,18 @@ export class ApplicationService {
       throw new Error("You have already applied for this job");
     }
 
+    // Get candidate details to extract mobile and location
+    const candidate = await UserModel.findById(candidateId);
+    if (!candidate) {
+      throw new Error("Candidate not found");
+    }
+
     const application = new ApplicationModel({
       job: applicationData.jobId, // Convert jobId to job field
       coverLetter: applicationData.coverLetter,
       resume: applicationData.resume,
+      mobileNumber: candidate.mobile || candidate.phone || applicationData.mobileNumber, // Use candidate's mobile/phone, fallback to request
+      location: candidate.location || applicationData.location, // Use candidate's location, fallback to request
       expectedSalary: applicationData.expectedSalary ? {
         amount: applicationData.expectedSalary,
         currency: applicationData.expectedSalaryCurrency || "USD",
@@ -69,7 +80,9 @@ export class ApplicationService {
     const application = await ApplicationModel.findOne({
       _id: applicationId,
       employer: employerId,
-    });
+    }).populate("candidate", "name email")
+      .populate("job", "title company")
+      .populate("employer", "name company email");
 
     if (!application) {
       return null;
@@ -85,26 +98,141 @@ export class ApplicationService {
       updateFields.reviewedAt = new Date();
     }
 
-    return await ApplicationModel.findByIdAndUpdate(
+    const updatedApplication = await ApplicationModel.findByIdAndUpdate(
       applicationId,
       updateFields,
       { new: true, runValidators: true }
     );
-  }
 
-  static async getApplicationById(applicationId: string, userId: string, userRole: string): Promise<IApplication | null> {
-    let query: any = { _id: applicationId };
+    // Send email notification based on application status change
+    if (updatedApplication && ["ACCEPTED", "REJECTED", "SHORTLISTED"].includes(updateData.status)) {
+      console.log('=== EMAIL SENDING DEBUG ===');
+      console.log('Application data:', {
+        applicationId: applicationId,
+        status: updateData.status,
+        candidate: application.candidate,
+        job: application.job,
+        employer: application.employer
+      });
+      
+      try {
+        const candidateName = (application.candidate as any)?.name || "Candidate";
+        const jobTitle = (application.job as any)?.title || "Job";
+        const companyName = (application.job as any)?.company || (application.employer as any)?.company || "Company";
+        const candidateEmail = (application.candidate as any)?.email;
+        
+        console.log('Extracted data for email:', {
+          candidateName,
+          jobTitle,
+          companyName,
+          candidateEmail,
+          employerName: (application.employer as any)?.name,
+          employerEmail: (application.employer as any)?.email
+        });
 
-    if (userRole === "CANDIDATE") {
-      query.candidate = userId;
-    } else if (userRole === "EMPLOYER") {
-      query.employer = userId;
+        if (candidateEmail) {
+          console.log('✅ Candidate email found:', candidateEmail);
+          let emailHtml: string;
+          let emailSubject: string;
+          const employerName = (application.employer as any)?.name || "Hiring Team";
+          const employerEmail = (application.employer as any)?.email;
+
+          switch (updateData.status) {
+            case "ACCEPTED":
+              emailHtml = applicationAcceptedEmailTemplate(candidateName, jobTitle, companyName, employerName);
+              emailSubject = "Application Accepted";
+              break;
+            case "REJECTED":
+              emailHtml = applicationRejectedEmailTemplate(candidateName, jobTitle, companyName, employerName);
+              emailSubject = "Application Update";
+              break;
+            case "SHORTLISTED":
+              emailHtml = applicationShortlistedEmailTemplate(candidateName, jobTitle, companyName, employerName);
+              emailSubject = "Application Shortlisted";
+              break;
+            default:
+              emailHtml = "";
+              emailSubject = "Application Status Update";
+          }
+
+          if (emailHtml) {
+            console.log('✅ Email template generated successfully');
+            const emailOptions = {
+              from: `"${employerName} from ${companyName}" <${employerEmail || process.env.EMAIL_FROM || 'noreply@jobboard.com'}>`,
+              to: candidateEmail,
+              replyTo: employerEmail || process.env.EMAIL_FROM || 'noreply@jobboard.com',
+              subject: emailSubject,
+              html: emailHtml,
+            };
+
+            console.log('Sending email with options:', {
+              from: emailOptions.from,
+              to: emailOptions.to,
+              subject: emailOptions.subject,
+              applicationId: applicationId,
+              status: updateData.status
+            });
+
+            try {
+              const emailResult = await sendEmail(emailOptions);
+              console.log(`${updateData.status} email sent successfully to ${candidateEmail}`, {
+                messageId: emailResult.messageId,
+                from: emailOptions.from,
+                applicationId: applicationId
+              });
+            } catch (emailSendError) {
+              console.error(`Failed to send ${updateData.status} email to ${candidateEmail}:`, {
+                error: emailSendError instanceof Error ? emailSendError.message : String(emailSendError),
+                applicationId: applicationId,
+                candidateEmail: candidateEmail,
+                employerName: employerName
+              });
+              // Don't fail the status update if email fails, but log the error
+            }
+          } else {
+            console.warn(`No email template found for status: ${updateData.status}`);
+          }
+        } else {
+          console.error('❌ Candidate email not found in application data');
+          console.error('Candidate data:', application.candidate);
+        }
+      } catch (emailError) {
+        console.error(`Failed to send ${updateData.status} email:`, emailError);
+        // Don't fail the status update if email fails
+      }
     }
 
-    return await ApplicationModel.findOne(query)
+    return updatedApplication;
+  }
+
+  /**
+   * Retrieves a job application by ID with proper authorization checks.
+   *
+   * @param applicationId ID of the application to retrieve
+   * @param userId ID of the user requesting the application
+   * @param userRole Role of the user requesting the application
+   * @returns The application if found and accessible, null otherwise
+   */
+  static async getApplicationById(applicationId: string, userId: string, userRole: string): Promise<IApplication | null> {
+    const application = await ApplicationModel.findById(applicationId)
       .populate("job", "title company location type experience")
-      .populate("candidate", "name email image skills")
+      .populate("candidate", "name email mobile phone location company position skills image")
       .populate("employer", "name company image");
+
+    if (!application) {
+      return null;
+    }
+
+    // Check if user has access to this application
+    if (userRole === "CANDIDATE" && application.candidate.toString() !== userId) {
+      return null;
+    }
+
+    if (userRole === "EMPLOYER" && application.employer.toString() !== userId) {
+      return null;
+    }
+
+    return application;
   }
 
   /**
@@ -121,27 +249,59 @@ export class ApplicationService {
     const { status, jobId, page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;
 
-    const filter: any = { candidate: candidateId };
+    // Ensure candidateId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(candidateId)) {
+      throw new Error("Invalid candidate ID");
+    }
+
+    // Convert candidateId to ObjectId for proper database comparison
+    const candidateObjectId = new mongoose.Types.ObjectId(candidateId);
+    
+    const filter: any = { candidate: candidateObjectId };
 
     if (status) {
       filter.status = status;
     }
 
     if (jobId) {
-      filter.job = jobId;
+      if (!mongoose.Types.ObjectId.isValid(jobId)) {
+        throw new Error("Invalid job ID");
+      }
+      filter.job = new mongoose.Types.ObjectId(jobId);
     }
 
-    const [applications, total] = await Promise.all([
-      ApplicationModel.find(filter)
+    try {
+      // Get all applications for this candidate with proper filtering
+      const applications = await ApplicationModel.find(filter)
         .sort({ appliedAt: -1 })
         .skip(skip)
         .limit(limit)
         .populate("job", "title company location type experience")
-        .populate("employer", "name company image"),
-      ApplicationModel.countDocuments(filter)
-    ]);
+        .populate("employer", "name company image")
+        .populate("candidate", "name email mobile phone location company position skills image");
 
-    return { applications, total };
+      // Get total count for pagination
+      const total = await ApplicationModel.countDocuments(filter);
+
+      // Ensure all returned applications belong to the candidate (double-check)
+      const validatedApplications = applications.filter(app => {
+        const appCandidateId = app.candidate.toString();
+        return appCandidateId === candidateId;
+      });
+
+      // Log for debugging (remove in production)
+      if (applications.length !== validatedApplications.length) {
+        console.warn(`Filter mismatch: found ${applications.length} applications, validated ${validatedApplications.length} for candidate ${candidateId}`);
+      }
+
+      return { 
+        applications: validatedApplications, 
+        total: validatedApplications.length 
+      };
+    } catch (error) {
+      console.error('Database error in getApplicationsByCandidate:', error);
+      throw new Error('Failed to retrieve applications from database');
+    }
   }
 
   /**
@@ -155,35 +315,50 @@ export class ApplicationService {
     employerId: string,
     query: ApplicationQueryDto
   ): Promise<{ applications: IApplication[], total: number }> {
-    const { status, jobId, candidateId, page = 1, limit = 10 } = query;
-    const skip = (page - 1) * limit;
+    try {
+      const { status, jobId, candidateId, page = 1, limit = 10 } = query;
+      const skip = (page - 1) * limit;
 
-    const filter: any = { employer: employerId };
+      // Ensure employerId is a valid ObjectId
+      if (!mongoose.Types.ObjectId.isValid(employerId)) {
+        throw new Error('Invalid employer ID format');
+      }
 
-    if (status) {
-      filter.status = status;
+      const filter: any = { employer: new mongoose.Types.ObjectId(employerId) };
+
+      if (status) {
+        filter.status = status;
+      }
+
+      if (jobId && mongoose.Types.ObjectId.isValid(jobId)) {
+        filter.job = new mongoose.Types.ObjectId(jobId);
+      }
+
+      if (candidateId && mongoose.Types.ObjectId.isValid(candidateId)) {
+        filter.candidate = new mongoose.Types.ObjectId(candidateId);
+      }
+
+      console.log('Employer applications filter:', filter);
+
+      const [applications, total] = await Promise.all([
+        ApplicationModel.find(filter)
+          .sort({ appliedAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .populate("job", "title company location type experience")
+          .populate("candidate", "name email mobile phone location company position skills image")
+          .populate("employer", "name company image"),
+        ApplicationModel.countDocuments(filter)
+      ]);
+
+      console.log('Found applications:', applications.length);
+      console.log('Total applications:', total);
+
+      return { applications, total };
+    } catch (error) {
+      console.error('Database error in getApplicationsByEmployer:', error);
+      throw new Error('Failed to retrieve applications from database');
     }
-
-    if (jobId) {
-      filter.job = jobId;
-    }
-
-    if (candidateId) {
-      filter.candidate = candidateId;
-    }
-
-    const [applications, total] = await Promise.all([
-      ApplicationModel.find(filter)
-        .sort({ appliedAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate("job", "title company location type experience")
-        .populate("candidate", "name email image skills")
-        .populate("employer", "name company image"),
-      ApplicationModel.countDocuments(filter)
-    ]);
-
-    return { applications, total };
   }
 
   /**

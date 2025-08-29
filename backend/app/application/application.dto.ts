@@ -11,6 +11,13 @@ export class CreateApplicationDto {
   @IsString()
   resume!: string;
 
+  @IsString()
+  mobileNumber!: string;
+
+  @IsString()
+  @IsOptional()
+  location?: string;
+
   @IsNumber()
   @Min(0)
   @IsOptional()

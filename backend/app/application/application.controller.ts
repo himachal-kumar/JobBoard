@@ -119,6 +119,19 @@ export class ApplicationController {
       const query = new ApplicationQueryDto();
       Object.assign(query, req.query);
 
+      // Validate user ID
+      if (!req.user || !req.user._id) {
+        res.status(401).json({ message: "User not authenticated" });
+        return;
+      }
+
+      // Ensure user ID is a string
+      const userId = req.user._id.toString();
+      if (!userId) {
+        res.status(401).json({ message: "Invalid user ID" });
+        return;
+      }
+
       const errors = await validate(query);
       if (errors.length > 0) {
         res.status(400).json({
@@ -131,7 +144,7 @@ export class ApplicationController {
         return;
       }
 
-      const result = await ApplicationService.getApplicationsByCandidate(req.user!._id, query);
+      const result = await ApplicationService.getApplicationsByCandidate(userId, query);
 
       res.json({
         message: "Applications retrieved successfully",
@@ -144,6 +157,7 @@ export class ApplicationController {
         }
       });
     } catch (error: any) {
+      console.error('Error in getApplicationsByCandidate:', error);
       res.status(500).json({
         message: "Failed to retrieve applications",
         error: error.message
@@ -156,6 +170,18 @@ export class ApplicationController {
       const query = new ApplicationQueryDto();
       Object.assign(query, req.query);
 
+      // Debug logging
+      console.log('getApplicationsByEmployer - User:', req.user);
+      console.log('getApplicationsByEmployer - User ID:', req.user?._id);
+      console.log('getApplicationsByEmployer - User ID type:', typeof req.user?._id);
+
+      if (!req.user || !req.user._id) {
+        res.status(400).json({
+          message: "User not authenticated or user ID missing"
+        });
+        return;
+      }
+
       const errors = await validate(query);
       if (errors.length > 0) {
         res.status(400).json({
@@ -168,7 +194,11 @@ export class ApplicationController {
         return;
       }
 
-      const result = await ApplicationService.getApplicationsByEmployer(req.user!._id, query);
+      // Ensure user ID is converted to string
+      const userId = req.user._id.toString();
+      console.log('getApplicationsByEmployer - Converted User ID:', userId);
+
+      const result = await ApplicationService.getApplicationsByEmployer(userId, query);
 
       res.json({
         message: "Applications retrieved successfully",
@@ -181,6 +211,7 @@ export class ApplicationController {
         }
       });
     } catch (error: any) {
+      console.error('Error in getApplicationsByEmployer:', error);
       res.status(500).json({
         message: "Failed to retrieve applications",
         error: error.message

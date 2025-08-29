@@ -104,12 +104,12 @@ export const initPassport = (): void => {
 
 export const createUserTokens = (user: Omit<IUser, "password">) => {
   const accessToken = JWTService.generateAccessToken({
-    userId: user._id,
+    userId: user._id.toString(),
     email: user.email,
     role: user.role,
   });
   const refreshToken = JWTService.generateRefreshToken({
-    userId: user._id,
+    userId: user._id.toString(),
     email: user.email,
     role: user.role,
   });

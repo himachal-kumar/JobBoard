@@ -11,7 +11,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const body_parser_1 = __importDefault(require("body-parser"));
 const cors_1 = __importDefault(require("cors"));
@@ -26,7 +25,18 @@ const database_service_1 = require("./app/common/services/database.service");
 const passport_jwt_service_1 = require("./app/common/services/passport-jwt.service");
 const routes_1 = __importDefault(require("./app/routes"));
 const swagger_config_1 = require("./app/common/config/swagger.config");
-const port = (_a = Number(process.env.PORT)) !== null && _a !== void 0 ? _a : 5000;
+// Get port from environment or use default
+let port = parseInt(process.env.PORT || '5000', 10);
+// Debug port configuration
+console.log('Environment PORT:', process.env.PORT);
+console.log('Final PORT:', port);
+console.log('PORT type:', typeof port);
+// Ensure port is valid
+if (isNaN(port) || port < 1 || port > 65535) {
+    console.error('Invalid port number:', process.env.PORT);
+    console.error('Using default port 5000');
+    port = 5000;
+}
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
 app.use(body_parser_1.default.urlencoded({ extended: false }));
@@ -41,7 +51,7 @@ const initApp = () => __awaiter(void 0, void 0, void 0, function* () {
     // Swagger documentation
     app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_config_1.specs, {
         customCss: '.swagger-ui .topbar { display: none }',
-        customSiteTitle: 'User Management API Documentation',
+        customSiteTitle: 'Job Board API Documentation',
         customfavIcon: '/favicon.ico',
         swaggerOptions: {
             docExpansion: 'list',
@@ -52,12 +62,22 @@ const initApp = () => __awaiter(void 0, void 0, void 0, function* () {
     }));
     // set base path to /api
     app.use("/api", routes_1.default);
+    // Health check endpoint for Docker
+    app.get("/health", (req, res) => {
+        res.status(200).json({
+            status: "healthy",
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+            environment: process.env.NODE_ENV || 'development'
+        });
+    });
     app.get("/", (req, res) => {
         res.send({
             status: "ok",
-            message: "User Management API is running",
+            message: "Job Board API is running",
             documentation: "/api-docs",
-            api: "/api"
+            api: "/api",
+            health: "/health"
         });
     });
     // error handler

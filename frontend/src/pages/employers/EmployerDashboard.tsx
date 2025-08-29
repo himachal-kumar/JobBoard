@@ -5,7 +5,7 @@
  * applications received, and key metrics for managing their hiring process.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -51,8 +51,9 @@ import {
   Settings as SettingsIcon,
   Logout as LogoutIcon,
   Notifications as NotificationsIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import { RootState } from '../../store/store';
@@ -88,11 +89,56 @@ function TabPanel(props: TabPanelProps) {
  */
 const EmployerDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [tabValue, setTabValue] = useState(0);
   const [userMenuAnchorEl, setUserMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [jobToDelete, setJobToDelete] = useState<string | null>(null);
-  const user = useSelector((state: RootState) => state.auth.user);
+  // Get current user from auth state
+  const { user, isAuthenticated, accessToken } = useSelector((state: RootState) => state.auth);
+
+  // Auto-switch to applications tab if accessed via /applications/employer
+  useEffect(() => {
+    if (location.pathname === '/applications/employer') {
+      setTabValue(1);
+    }
+  }, [location.pathname]);
+
+  // Debug authentication state
+  useEffect(() => {
+    console.log('=== AUTH DEBUG ===');
+    console.log('User:', user);
+    console.log('Is Authenticated:', isAuthenticated);
+    console.log('Access Token:', accessToken ? 'Present' : 'Missing');
+    console.log('User Role:', user?.role);
+  }, [user, isAuthenticated, accessToken]);
+
+  // Check if user is employer
+  if (!isAuthenticated) {
+    return (
+      <Box sx={{ p: 4, textAlign: 'center' }}>
+        <Typography variant="h4" sx={{ mb: 2 }}>
+          🔐 Authentication Required
+        </Typography>
+        <Typography variant="body1" sx={{ mb: 2 }}>
+          Please log in to access the employer dashboard.
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (user?.role !== 'EMPLOYER') {
+    return (
+      <Box sx={{ p: 4, textAlign: 'center' }}>
+        <Typography variant="h4" sx={{ mb: 2 }}>
+          🚫 Access Denied
+        </Typography>
+        <Typography variant="body1" sx={{ mb: 2 }}>
+          This dashboard is only accessible to employers. Your current role is: {user?.role || 'Unknown'}
+        </Typography>
+      </Box>
+    );
+  }
 
   // Fetch employer jobs from API - fetch all jobs without pagination limit
   const { data: jobsData, isLoading: jobsLoading, error: jobsError, refetch: refetchJobs } = useGetEmployerJobsQuery({
@@ -113,7 +159,10 @@ const EmployerDashboard: React.FC = () => {
     console.log('EmployerDashboard - Job postings:', jobsData?.data || []);
   }, [jobsData, jobsLoading, jobsError]);
 
-  const jobPostings = jobsData?.data || [];
+  // Ensure jobPostings is always an array
+  const jobPostings = Array.isArray(jobsData?.data) 
+    ? jobsData.data 
+    : jobsData?.data?.jobs || [];
   
   // Debug logging for jobs
   console.log('Employer Dashboard - Jobs Data:', jobsData);
@@ -121,13 +170,43 @@ const EmployerDashboard: React.FC = () => {
   console.log('Employer Dashboard - Jobs Loading:', jobsLoading);
   console.log('Employer Dashboard - Jobs Error:', jobsError);
 
-  // Fetch employer applications from API with real-time updates
-  const { data: applicationsData, isLoading: applicationsLoading, refetch } = useGetEmployerApplicationsQuery({
+  // Get employer applications
+  const { data: applicationsData, isLoading: applicationsLoading, refetch, error: applicationsError } = useGetEmployerApplicationsQuery({
     page: 1,
-    limit: 1000 // Increased limit to fetch all applications
+    limit: 50
+  }, {
+    refetchOnMountOrArgChange: true,
+    pollingInterval: 30000, // Refetch every 30 seconds
   });
 
-  const recentApplications = applicationsData?.data?.applications || [];
+  // Debug logging for API call
+  useEffect(() => {
+    console.log('=== API CALL DEBUG ===');
+    console.log('API Call made:', !!applicationsData);
+    console.log('API Loading:', applicationsLoading);
+    console.log('API Error:', applicationsError);
+    console.log('API Response:', applicationsData);
+  }, [applicationsData, applicationsLoading, applicationsError]);
+
+  // Handle different possible data structures from the API
+  const recentApplications = Array.isArray(applicationsData?.data) 
+    ? applicationsData.data 
+    : applicationsData?.data?.applications || [];
+  
+  // Ensure we always have an array and type it properly
+  const applicationsArray: any[] = Array.isArray(recentApplications) ? recentApplications : [];
+  
+  // Debug: Log the actual data structure
+  console.log('Raw API Response:', applicationsData);
+  console.log('Data property:', applicationsData?.data);
+  console.log('Data type:', typeof applicationsData?.data);
+  console.log('Is Array:', Array.isArray(applicationsData?.data));
+  console.log('Parsed applications:', applicationsArray);
+  console.log('Applications array length:', applicationsArray.length);
+  
+  // Check if we have valid applications data
+  const hasValidApplications = applicationsArray.length > 0 && applicationsArray.every(app => app && app._id);
+  console.log('Has valid applications:', hasValidApplications);
   
   // Application status update mutation
   const [updateApplicationStatus] = useUpdateApplicationStatusMutation();
@@ -137,15 +216,46 @@ const EmployerDashboard: React.FC = () => {
     refetch();
   }, [refetch]);
 
+  // Auto-refresh applications every 30 seconds to catch new submissions
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetch();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [refetch]);
+
   // Refresh jobs when component mounts
   React.useEffect(() => {
     refetchJobs();
   }, [refetchJobs]);
 
+  // Show notification when new applications arrive
+  useEffect(() => {
+    if (applicationsArray.length > 0) {
+      const newApplications = applicationsArray.filter(app => app.status === 'PENDING');
+      if (newApplications.length > 0) {
+        toast.info(`You have ${newApplications.length} new application${newApplications.length > 1 ? 's' : ''} to review!`, {
+          autoClose: 5000,
+          position: 'top-right'
+        });
+      }
+    }
+  }, [applicationsArray.length]);
+
   // Debug logging for applications
   console.log('Employer Dashboard - Applications Data:', applicationsData);
-  console.log('Employer Dashboard - Recent Applications:', recentApplications);
+  console.log('Employer Dashboard - Recent Applications:', applicationsArray);
   console.log('Employer Dashboard - Applications Loading:', applicationsLoading);
+  console.log('Employer Dashboard - Applications Data Structure:', {
+    hasData: !!applicationsData,
+    hasDataData: !!applicationsData?.data,
+    hasApplications: Array.isArray(applicationsData?.data),
+    applicationsLength: Array.isArray(applicationsData?.data) ? applicationsData.data.length : 0,
+    rawData: applicationsData?.data,
+    dataType: typeof applicationsData?.data,
+    isArray: Array.isArray(applicationsData?.data)
+  });
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -239,12 +349,18 @@ const EmployerDashboard: React.FC = () => {
     console.log('Navigate to settings');
   };
 
-  const handleApplicationStatusUpdate = async (applicationId: string, newStatus: string) => {
+  const handleApplicationStatusUpdate = async (applicationId: string, newStatus: string, notes?: string) => {
     try {
-      await updateApplicationStatus({ applicationId, status: newStatus }).unwrap();
+      await updateApplicationStatus({
+        applicationId,
+        status: newStatus,
+        employerNotes: notes
+      }).unwrap();
+      
       toast.success(`Application status updated to ${newStatus}`);
       refetch(); // Refresh applications data
     } catch (error: any) {
+      console.error('Error updating application status:', error);
       toast.error(`Failed to update status: ${error?.data?.message || 'Unknown error'}`);
     }
   };
@@ -312,22 +428,33 @@ const EmployerDashboard: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Button
                 color="inherit"
-                startIcon={<WorkIcon />}
-                onClick={() => navigate('/jobs')}
-                variant="outlined"
-                sx={{ borderColor: 'white', color: 'white' }}
+                onClick={() => setTabValue(1)}
+                startIcon={<PeopleIcon />}
+                sx={{ 
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  '&:hover': { borderColor: 'rgba(255,255,255,0.5)' }
+                }}
               >
-                Browse Jobs
+                View Applications
+                {applicationsArray.filter(app => app.status === 'PENDING').length > 0 && (
+                  <Chip
+                    label={applicationsArray.filter(app => app.status === 'PENDING').length}
+                    color="error"
+                    size="small"
+                    sx={{ ml: 1, backgroundColor: 'white', color: 'error.main' }}
+                  />
+                )}
               </Button>
-              
               <Button
                 color="inherit"
-                startIcon={<AddIcon />}
                 onClick={handlePostJob}
-                variant="outlined"
-                sx={{ borderColor: 'white', color: 'white' }}
+                startIcon={<AddIcon />}
+                sx={{ 
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  '&:hover': { borderColor: 'rgba(255,255,255,0.5)' }
+                }}
               >
-                Post Job
+                Post New Job
               </Button>
               
               <Button
@@ -779,25 +906,237 @@ const EmployerDashboard: React.FC = () => {
                   Loading applications...
                 </Typography>
               </Box>
-            ) : recentApplications.length === 0 ? (
+            ) : applicationsError ? (
               <Box sx={{ textAlign: 'center', py: 6 }}>
-                <PeopleIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="h6" sx={{ mb: 1 }}>
-                  No applications yet
-                </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                  Applications will appear here when candidates apply to your jobs
-                </Typography>
+                <Alert severity="error" sx={{ mb: 3 }}>
+                  Failed to load applications: {applicationsError ? 'Request failed' : 'Unknown error'}
+                </Alert>
+                <Button
+                  variant="contained"
+                  onClick={() => refetch()}
+                  startIcon={<RefreshIcon />}
+                >
+                  Retry
+                </Button>
               </Box>
             ) : (
               <Box>
-                {recentApplications.map((application) => (
-                  <ApplicationCard
-                    key={application.id}
-                    application={application}
-                    onStatusUpdate={handleApplicationStatusUpdate}
-                  />
-                ))}
+                {/* Applications Overview Header */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                    📋 Recent Applications ({applicationsArray.length})
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => refetch()}
+                      sx={{ borderColor: 'primary.main', color: 'primary.main' }}
+                    >
+                      Refresh
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="small"
+                      onClick={() => navigate('/post-job')}
+                    >
+                      Post New Job
+                    </Button>
+                  </Box>
+                </Box>
+
+                {/* Quick Stats Cards */}
+                <Grid container spacing={2} sx={{ mb: 3 }}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: 'primary.main', color: 'white' }}>
+                      <Typography variant="h4" sx={{ fontWeight: 600 }}>
+                        {applicationsArray.length}
+                      </Typography>
+                      <Typography variant="body2">
+                        Total Applications
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: 'warning.main', color: 'white' }}>
+                      <Typography variant="h4" sx={{ fontWeight: 600 }}>
+                        {applicationsArray.filter(app => app.status === 'PENDING').length}
+                      </Typography>
+                      <Typography variant="body2">
+                        New Applications
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: 'info.main', color: 'white' }}>
+                      <Typography variant="h4" sx={{ fontWeight: 600 }}>
+                        {applicationsArray.filter(app => app.status === 'SHORTLISTED').length}
+                      </Typography>
+                      <Typography variant="body2">
+                        Shortlisted
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: 'success.main', color: 'white' }}>
+                      <Typography variant="h4" sx={{ fontWeight: 600 }}>
+                        {applicationsArray.filter(app => app.status === 'ACCEPTED').length}
+                      </Typography>
+                      <Typography variant="body2">
+                        Hired
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                </Grid>
+
+                {/* Applications List */}
+                <Box>
+                  <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'text.primary' }}>
+                    📋 Application Details
+                  </Typography>
+                  
+                  {/* Show applications when they exist */}
+                  {applicationsArray.length > 0 ? (
+                    <>
+                      {/* Applications Table */}
+                      <Paper sx={{ overflow: 'hidden' }}>
+                        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                            All Applications ({applicationsArray.length})
+                          </Typography>
+                        </Box>
+                        
+                        {/* Applications Grid */}
+                        <Grid container spacing={2} sx={{ p: 2 }}>
+                          {applicationsArray.map((application, index) => (
+                            <Grid item xs={12} md={6} lg={4} key={application._id || `app-${index}`}>
+                              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                                <CardContent sx={{ flexGrow: 1 }}>
+                                  {/* Job Title */}
+                                  <Typography variant="h6" component="h3" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+                                    {application.job?.title || 'Job Title Not Available'}
+                                  </Typography>
+                                  
+                                  {/* Company */}
+                                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                    <CompanyIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                                    <Typography variant="body2" color="text.secondary">
+                                      {application.job?.company || application.job?.employer?.company || 'Company Not Specified'}
+                                    </Typography>
+                                  </Box>
+                                  
+                                  {/* Expected Salary */}
+                                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                    <SalaryIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                                    <Typography variant="body2" color="text.secondary">
+                                      Expected: ${application.expectedSalary?.amount?.toLocaleString() || 'Not Specified'} {application.expectedSalary?.currency || 'USD'}
+                                    </Typography>
+                                  </Box>
+                                  
+                                  {/* Job Salary Range */}
+                                  {application.job?.salary && (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                      <SalaryIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                                      <Typography variant="body2" color="text.secondary">
+                                        Job Range: ${application.job.salary.min?.toLocaleString() || 'N/A'} - ${application.job.salary.max?.toLocaleString() || 'N/A'}
+                                      </Typography>
+                                    </Box>
+                                  )}
+                                  
+                                  {/* Candidate Name */}
+                                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                    <PersonIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                                    <Typography variant="body2" color="text.secondary">
+                                      Candidate: {application.candidate?.name || 'Name Not Available'}
+                                    </Typography>
+                                  </Box>
+                                  
+                                  {/* Application Status */}
+                                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                    <Chip
+                                      label={getApplicationStatusText(application.status)}
+                                      color={getApplicationStatusColor(application.status) as any}
+                                      size="small"
+                                      sx={{ minWidth: 100 }}
+                                    />
+                                  </Box>
+                                  
+                                  {/* Applied Date */}
+                                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                    <ScheduleIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                                    <Typography variant="body2" color="text.secondary">
+                                      Applied: {application.appliedAt ? new Date(application.appliedAt).toLocaleDateString() : 'Date Not Available'}
+                                    </Typography>
+                                  </Box>
+                                  
+                                  {/* Job Location */}
+                                  {application.job?.location && (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                      <LocationIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                                      <Typography variant="body2" color="text.secondary">
+                                        Location: {application.job.location}
+                                      </Typography>
+                                    </Box>
+                                  )}
+                                  
+                                  {/* Job Type */}
+                                  {application.job?.type && (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                      <WorkIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                                      <Typography variant="body2" color="text.secondary">
+                                        Type: {application.job.type}
+                                      </Typography>
+                                    </Box>
+                                  )}
+                                </CardContent>
+                                
+                                <CardActions sx={{ justifyContent: 'space-between', p: 2, pt: 0 }}>
+                                  <Button
+                                    size="small"
+                                    startIcon={<ViewIcon />}
+                                    onClick={() => navigate(`/application/${application._id}`)}
+                                    variant="outlined"
+                                    fullWidth
+                                  >
+                                    View Details
+                                  </Button>
+                                </CardActions>
+                              </Card>
+                            </Grid>
+                          ))}
+                        </Grid>
+                      </Paper>
+                    </>
+                  ) : (
+                    <Paper sx={{ p: 4, textAlign: 'center', backgroundColor: 'grey.50' }}>
+                      <Typography variant="h6" sx={{ mb: 2, color: 'text.secondary' }}>
+                        📭 No Applications Yet
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        {applicationsLoading ? 'Loading applications...' : 'You haven\'t received any job applications yet.'}
+                      </Typography>
+                      
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => navigate('/post-job')}
+                        sx={{ mt: 2 }}
+                      >
+                        Post a Job
+                      </Button>
+                    </Paper>
+                  )}
+                </Box>
+
+                {/* Applications Summary Footer */}
+                <Paper sx={{ p: 3, mt: 3, backgroundColor: 'grey.50' }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+                    Total Applications: {applicationsArray.length} • 
+                    Last Updated: {new Date().toLocaleTimeString()} • 
+                    Auto-refresh every 30 seconds
+                  </Typography>
+                </Paper>
               </Box>
             )}
           </TabPanel>

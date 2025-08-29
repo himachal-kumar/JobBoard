@@ -23,6 +23,8 @@ const Register = lazy(() => import('./pages/register'));
 // Lazy load role-based dashboard pages
 const EmployerDashboard = lazy(() => import('./pages/employers/EmployerDashboard'));
 const CandidateDashboard = lazy(() => import('./pages/candidates/CandidateDashboard'));
+const ViewApplication = lazy(() => import('./pages/employers/ViewApplication'));
+const JobDetails = lazy(() => import('./pages/JobDetails'));
 
 // Loading component
 const LoadingFallback = () => (
@@ -85,12 +87,15 @@ function App() {
         {/* Protected routes - authentication required */}
         <Route element={<AuthenticatedLayout />}>
           <Route path="/jobs" element={<Jobs />} />
+          <Route path="/job/:jobId" element={<JobDetails />} />
           <Route path="/post-job" element={<PostJob />} />
           <Route path="/employer-dashboard" element={<EmployerDashboard />} />
           <Route path="/candidate-dashboard" element={<CandidateDashboard />} />
           <Route path="/applications" element={<Applications />} />
+          <Route path="/applications/employer" element={<EmployerDashboard />} />
           <Route path="/job/:jobId/resume-upload" element={<ResumeUploadPage />} />
           <Route path="/job/:jobId/apply" element={<ApplyToJob />} />
+          <Route path="/application/:applicationId" element={<ViewApplication />} />
           <Route path="/profile" element={<Profile />} />
         </Route>
         

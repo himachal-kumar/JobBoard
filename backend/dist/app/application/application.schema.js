@@ -28,6 +28,7 @@ const ApplicationSchema = new mongoose_1.default.Schema({
     },
     coverLetter: { type: String, required: true },
     resume: { type: String, required: true },
+    mobileNumber: { type: String, required: true },
     expectedSalary: {
         amount: { type: Number },
         currency: { type: String, default: "USD" },

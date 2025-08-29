@@ -12,6 +12,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireAdmin = exports.requireCandidate = exports.requireEmployer = exports.requireRole = exports.authenticateRefreshToken = exports.authenticateToken = void 0;
 const jwt_service_1 = require("../services/jwt.service");
 const user_schema_1 = require("../../user/user.schema");
+/**
+ * Express middleware to authenticate and authorize user by access token.
+ *
+ * @param {Request} req - The request object.
+ * @param {Response} res - The response object.
+ * @param {NextFunction} next - The next middleware function.
+ * @returns {Promise<void>}
+ */
 const authenticateToken = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const authHeader = req.headers.authorization;
@@ -47,6 +55,14 @@ const authenticateToken = (req, res, next) => __awaiter(void 0, void 0, void 0, 
     }
 });
 exports.authenticateToken = authenticateToken;
+/**
+ * Express middleware to authenticate and authorize user by refresh token.
+ *
+ * @param {Request} req - The request object.
+ * @param {Response} res - The response object.
+ * @param {NextFunction} next - The next middleware function.
+ * @returns {Promise<void>}
+ */
 const authenticateRefreshToken = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { refreshToken } = req.body;
@@ -80,6 +96,12 @@ const authenticateRefreshToken = (req, res, next) => __awaiter(void 0, void 0, v
     }
 });
 exports.authenticateRefreshToken = authenticateRefreshToken;
+/**
+ * Express middleware to check if a user has one of the given roles.
+ *
+ * @param {string[]} roles - List of allowed roles.
+ * @returns {import('express').RequestHandler} Express middleware.
+ */
 const requireRole = (roles) => {
     return (req, res, next) => {
         if (!req.user) {

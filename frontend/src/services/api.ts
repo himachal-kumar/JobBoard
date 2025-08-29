@@ -335,6 +335,7 @@ export const api = createApi({
       jobId: string;
       coverLetter: string;
       resume: string;
+      mobileNumber: string;
       expectedSalary?: number;
       expectedSalaryCurrency?: string;
       availability?: string;
@@ -386,6 +387,7 @@ export const api = createApi({
       applicationId: string;
       status: string;
       employerNotes?: string;
+      statusReason?: string;
     }>({
       query: ({ applicationId, ...body }) => ({
         url: `/applications/${applicationId}/status`,

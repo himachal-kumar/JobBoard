@@ -6,7 +6,7 @@
  * the job filters sidebar and the main job listings area.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Grid,
@@ -19,7 +19,6 @@ import {
   Drawer,
   IconButton,
   Fab,
-  Skeleton,
   Pagination,
   FormControl,
   InputLabel,
@@ -38,6 +37,8 @@ import { Job, JobFilters as JobFiltersType, UserRole } from '../types/jobBoard';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useSearchJobsQuery } from '../services/api';
+import { JobListSkeleton, FilterSkeleton, SearchBarSkeleton } from '../components/common/SkeletonLoader';
+import { useJobListLoader } from '../hooks/useSkeletonLoader';
 
 /**
  * Sort options for job listings
@@ -65,6 +66,12 @@ const Jobs: React.FC = () => {
   const { user } = useAuth();
   const userRole: UserRole = user?.role || 'CANDIDATE';
   
+  // Skeleton loader hook
+  const skeletonLoader = useJobListLoader({
+    delay: 200,
+    minDisplayTime: 800,
+  });
+  
   // API query for jobs - show all jobs by default
   const { data: jobsData, isLoading, error } = useSearchJobsQuery({
     search: '', // Empty search to get all jobs
@@ -76,6 +83,15 @@ const Jobs: React.FC = () => {
   const jobs = Array.isArray(jobsData?.data) ? jobsData.data : [];
   const totalJobs = jobsData?.pagination?.total || 0;
   const totalPages = jobsData?.pagination?.totalPages || jobsData?.pagination?.pages || 1;
+  
+  // Sync skeleton loader with API loading state
+  useEffect(() => {
+    if (isLoading) {
+      skeletonLoader.startLoading();
+    } else {
+      skeletonLoader.stopLoading();
+    }
+  }, [isLoading, skeletonLoader]);
   
   /**
    * Handle filter changes
@@ -97,7 +113,7 @@ const Jobs: React.FC = () => {
   const handleApply = (jobId: string) => {
     // In a real app, this would navigate to application form or apply directly
     console.log('Apply for job:', jobId);
-    navigate(`/jobs/${jobId}`);
+    navigate(`/job/${jobId}`);
   };
 
   /**
@@ -122,7 +138,7 @@ const Jobs: React.FC = () => {
   const handleViewDetails = (jobId: string) => {
     // In a real app, this would navigate to detailed job view
     console.log('View job details:', jobId);
-    navigate(`/jobs/${jobId}`);
+    navigate(`/job/${jobId}`);
   };
   
   /**
@@ -140,44 +156,11 @@ const Jobs: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-
-  
   /**
    * Calculate pagination
    */
   // Use jobs directly from API (pagination is handled by the backend)
   const currentJobs = jobs;
-  
-  /**
-   * Loading skeleton for job cards
-   */
-  const JobCardSkeleton = () => (
-    <Paper sx={{ p: 3, mb: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-        <Skeleton variant="circular" width={56} height={56} sx={{ mr: 2 }} />
-        <Box sx={{ flexGrow: 1 }}>
-          <Skeleton variant="text" width="60%" height={32} sx={{ mb: 1 }} />
-          <Skeleton variant="text" width="40%" height={24} sx={{ mb: 1 }} />
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Skeleton variant="rectangular" width={80} height={24} />
-            <Skeleton variant="rectangular" width={100} height={24} />
-            <Skeleton variant="rectangular" width={70} height={24} />
-          </Box>
-        </Box>
-      </Box>
-      <Skeleton variant="text" width="100%" height={20} sx={{ mb: 1 }} />
-      <Skeleton variant="text" width="80%" height={20} sx={{ mb: 2 }} />
-      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-        <Skeleton variant="rectangular" width={60} height={24} />
-        <Skeleton variant="rectangular" width={70} height={24} />
-        <Skeleton variant="rectangular" width={80} height={24} />
-      </Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-        <Skeleton variant="rectangular" width={100} height={36} />
-        <Skeleton variant="rectangular" width={120} height={36} />
-      </Box>
-    </Paper>
-  );
   
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -283,12 +266,10 @@ const Jobs: React.FC = () => {
 
           
           {/* Job Listings */}
-          {isLoading ? (
-            // Loading state
+          {skeletonLoader.showSkeleton ? (
+            // Loading state with skeleton
             <Box>
-              {Array.from({ length: 5 }).map((_, index) => (
-                <JobCardSkeleton key={index} />
-              ))}
+              <JobListSkeleton count={6} />
             </Box>
           ) : error ? (
             // Error state

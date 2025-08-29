@@ -25,7 +25,20 @@ declare global {
   }
 }
 
-const port = Number(process.env.PORT) ?? 5000;
+// Get port from environment or use default
+let port = parseInt(process.env.PORT || '5000', 10);
+
+// Debug port configuration
+console.log('Environment PORT:', process.env.PORT);
+console.log('Final PORT:', port);
+console.log('PORT type:', typeof port);
+
+// Ensure port is valid
+if (isNaN(port) || port < 1 || port > 65535) {
+  console.error('Invalid port number:', process.env.PORT);
+  console.error('Using default port 5000');
+  port = 5000;
+}
 
 const app: Express = express();
 

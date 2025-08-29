@@ -45,6 +45,7 @@ export const authenticateToken = async (
 
     req.user = user;
     req.token = token;
+    
     next();
   } catch (error) {
     if (error instanceof Error && error.message === "jwt expired") {

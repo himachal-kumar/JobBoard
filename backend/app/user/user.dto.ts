@@ -15,6 +15,7 @@ export interface IUser extends BaseSchema {
   linkedinId?: string;
   // Additional fields for role-based data
   phone?: string;
+  mobile?: string; // Add mobile field
   location?: string;
   company?: string;
   position?: string;

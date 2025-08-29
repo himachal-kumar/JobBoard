@@ -7,6 +7,7 @@ export interface IApplication {
   status: "PENDING" | "REVIEWING" | "SHORTLISTED" | "REJECTED" | "ACCEPTED";
   coverLetter: string;
   resume: string;
+  mobileNumber: string;
   expectedSalary?: {
     amount: number;
     currency: string;
@@ -43,6 +44,7 @@ const ApplicationSchema = new mongoose.Schema<IApplication>(
     },
     coverLetter: { type: String, required: true },
     resume: { type: String, required: true },
+    mobileNumber: { type: String, required: true },
     expectedSalary: {
       amount: { type: Number },
       currency: { type: String, default: "USD" },

@@ -38,6 +38,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../store/store';
 import { resetTokens } from '../store/reducers/authReducer';
+import ThemeToggle from './common/ThemeToggle';
 
 const Header: React.FC = () => {
   const theme = useTheme();
@@ -123,14 +124,17 @@ const Header: React.FC = () => {
           </Typography>
 
           {isMobile ? (
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="start"
-              onClick={handleDrawerToggle}
-            >
-              <MenuIcon />
-            </IconButton>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <ThemeToggle size="small" />
+              <IconButton
+                color="inherit"
+                aria-label="open drawer"
+                edge="start"
+                onClick={handleDrawerToggle}
+              >
+                <MenuIcon />
+              </IconButton>
+            </Box>
           ) : (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               {navigationItems.map((item) => (
@@ -143,6 +147,7 @@ const Header: React.FC = () => {
                   {item.label}
                 </Button>
               ))}
+              <ThemeToggle />
             </Box>
           )}
 

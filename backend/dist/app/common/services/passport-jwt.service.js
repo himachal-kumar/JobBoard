@@ -135,12 +135,12 @@ const initPassport = () => {
 exports.initPassport = initPassport;
 const createUserTokens = (user) => {
     const accessToken = jwt_service_1.JWTService.generateAccessToken({
-        userId: user._id,
+        userId: user._id.toString(),
         email: user.email,
         role: user.role,
     });
     const refreshToken = jwt_service_1.JWTService.generateRefreshToken({
-        userId: user._id,
+        userId: user._id.toString(),
         email: user.email,
         role: user.role,
     });

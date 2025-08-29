@@ -14,6 +14,7 @@ import {
   LocationOn as LocationIcon,
   Schedule as ScheduleIcon,
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { Job } from '../../types/jobBoard';
 
 interface ApplicationSuccessDialogProps {
@@ -31,6 +32,50 @@ const ApplicationSuccessDialog: React.FC<ApplicationSuccessDialogProps> = ({
   job,
   applicationId,
 }) => {
+  const navigate = useNavigate();
+
+  const handleViewApplications = () => {
+    // Create a mock application object with the submitted data
+    const newApplication = {
+      _id: applicationId || `temp-${Date.now()}`,
+      job: {
+        _id: job._id,
+        title: job.title,
+        company: job.company || job.employer?.name,
+        location: job.location,
+        type: job.jobType,
+        experience: job.experience,
+      },
+      employer: job.employer,
+      status: 'PENDING',
+      coverLetter: 'Cover letter submitted',
+      resume: 'Resume uploaded',
+      expectedSalary: {
+        amount: job.salaryMin,
+        currency: job.salaryCurrency,
+      },
+      availability: 'IMMEDIATE',
+      notes: '',
+      appliedAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Navigate to applications page with the new application data
+    navigate('/applications', {
+      state: {
+        applicationSubmitted: true,
+        newApplication: newApplication,
+      },
+    });
+    
+    onClose();
+  };
+
+  const handleBackToJobs = () => {
+    navigate('/jobs');
+    onClose();
+  };
+
   return (
     <Dialog
       open={open}
@@ -110,14 +155,14 @@ const ApplicationSuccessDialog: React.FC<ApplicationSuccessDialogProps> = ({
       <DialogActions sx={{ px: 3, pb: 3, justifyContent: 'space-between' }}>
         <Button
           variant="outlined"
-          onClick={onBackToJobs}
+          onClick={handleBackToJobs}
           sx={{ px: 3, py: 1.5, borderRadius: 2 }}
         >
           Back to Jobs
         </Button>
         <Button
           variant="contained"
-          onClick={onViewApplications}
+          onClick={handleViewApplications}
           sx={{ px: 4, py: 1.5, borderRadius: 2 }}
         >
           View My Applications

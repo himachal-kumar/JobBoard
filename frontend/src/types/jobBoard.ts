@@ -41,6 +41,8 @@ export interface User {
   image?: string;
   /** User's phone number */
   phone?: string;
+  /** User's mobile number */
+  mobile?: string;
   /** User's location */
   location?: string;
   /** User's bio/description */
@@ -121,6 +123,8 @@ export interface JobApplication {
   coverLetter?: string;
   /** Resume file URL */
   resume?: string;
+  /** Mobile number */
+  mobileNumber: string;
   /** Expected salary */
   expectedSalary?: {
     amount: number;
@@ -134,6 +138,8 @@ export interface JobApplication {
   appliedAt: Date;
   /** Date when application was last updated */
   updatedAt: Date;
+  /** Date when application was reviewed by employer */
+  reviewedAt?: Date;
   /** Employer's notes on the application */
   employerNotes?: string;
   /** Interview date (if scheduled) */
@@ -234,6 +240,8 @@ export interface JobApplicationFormData {
   coverLetter: string;
   /** Resume file */
   resume: File;
+  /** Mobile number */
+  mobileNumber: string;
   /** Expected salary */
   expectedSalary?: number;
   /** Expected salary currency */

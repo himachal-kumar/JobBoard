@@ -34,6 +34,9 @@ interface Application {
     phone?: string;
     location?: string;
     skills?: string[];
+    mobile?: string;
+    company?: string;
+    position?: string;
   };
   job: {
     title: string;
@@ -149,11 +152,20 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({
             </Typography>
           </Box>
           
+          {application.candidate.mobile && (
+            <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 150 }}>
+              <PhoneIcon sx={{ mr: 1, color: 'text.secondary' }} />
+              <Typography variant="body2">
+                Mobile: {application.candidate.mobile}
+              </Typography>
+            </Box>
+          )}
+          
           {application.candidate.phone && (
             <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 150 }}>
               <PhoneIcon sx={{ mr: 1, color: 'text.secondary' }} />
               <Typography variant="body2">
-                {application.candidate.phone}
+                Phone: {application.candidate.phone}
               </Typography>
             </Box>
           )}
@@ -162,7 +174,25 @@ const ApplicationManagement: React.FC<ApplicationManagementProps> = ({
             <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 150 }}>
               <LocationIcon sx={{ mr: 1, color: 'text.secondary' }} />
               <Typography variant="body2">
-                {application.candidate.location}
+                Location: {application.candidate.location}
+              </Typography>
+            </Box>
+          )}
+          
+          {application.candidate.company && (
+            <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 150 }}>
+              <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
+              <Typography variant="body2">
+                Company: {application.candidate.company}
+              </Typography>
+            </Box>
+          )}
+          
+          {application.candidate.position && (
+            <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 150 }}>
+              <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
+              <Typography variant="body2">
+                Position: {application.candidate.position}
               </Typography>
             </Box>
           )}

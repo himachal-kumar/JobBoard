@@ -102,6 +102,12 @@ const CandidateDashboard: React.FC = () => {
   // Fix data mapping - backend returns jobs directly in data array
   const availableJobs = jobsData?.data || [];
 
+  // Debug logging to see what data we're getting
+  console.log('Jobs Data:', jobsData);
+  console.log('Available Jobs:', availableJobs);
+  console.log('Jobs Loading:', jobsLoading);
+  console.log('Jobs Error:', jobsError);
+
   // Fetch applications from API with real-time updates
   const { data: applicationsData, isLoading: applicationsLoading, refetch } = useGetCandidateApplicationsQuery({
     page: 1,
@@ -123,12 +129,6 @@ const CandidateDashboard: React.FC = () => {
   const savedJobs = availableJobs.slice(0, 3); // First 3 jobs as saved
   const recommendedJobs = availableJobs.slice(0, 3); // First 3 jobs as recommended
 
-  // Debug logging to see what data we're getting (remove in production)
-  // console.log('Jobs Data:', jobsData);
-  // console.log('Available Jobs:', availableJobs);
-  // console.log('Jobs Loading:', jobsLoading);
-  // console.log('Jobs Error:', jobsError);
-
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
@@ -138,6 +138,11 @@ const CandidateDashboard: React.FC = () => {
   };
 
   const handleViewJob = (jobId: string) => {
+    console.log('Viewing job details for jobId:', jobId);
+    if (!jobId) {
+      toast.error('Invalid job ID');
+      return;
+    }
     navigate(`/job/${jobId}`);
   };
 
@@ -162,13 +167,10 @@ const CandidateDashboard: React.FC = () => {
       return;
     }
 
-    const targetUrl = `/job/${jobId}/resume-upload`;
-    console.log('Navigating to:', targetUrl);
-    
-    // Navigate to the resume upload page for this specific job
-    navigate(targetUrl);
-  
-    console.log('Navigation completed');
+    // First navigate to job details to show the job information
+    // Then the user can click apply from there
+    navigate(`/job/${jobId}`);
+    toast.info('View job details first, then click Apply Now to submit your application');
   };
 
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
