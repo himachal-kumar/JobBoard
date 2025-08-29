@@ -1,7 +1,10 @@
 # Job Board Platform
 
 A comprehensive full-stack job board application with role-based access control, job posting, application management, modern UI/UX, advanced theming system, and professional skeleton loaders.
-
+## swagger api test
+https://drive.google.com/file/d/1jQw8Ll_jEj9DZxeAmMKQn2CtAV7dmMzs/view?usp=sharing
+## video full
+https://drive.google.com/file/d/1LavUXlc6010ZnNVgI5Gl-GGu2lzaa6Ld/view?usp=sharing
 ## 🚀 Features
 
 ### 🔐 Authentication & Authorization
