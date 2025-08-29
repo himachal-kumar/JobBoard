@@ -244,29 +244,6 @@ npm run type-check   # Run TypeScript type checking
   - `useDashboardLoader` - Dashboard loading
   - `useTableLoader` - Table data loading
 
-### Easy Integration
-```tsx
-import { useJobListLoader } from '../hooks/useSkeletonLoader';
-import { JobListSkeleton } from '../components/common/SkeletonLoader';
-
-const loader = useJobListLoader();
-const { data: jobs, isLoading } = useJobsQuery();
-
-useEffect(() => {
-  if (isLoading) loader.startLoading();
-  else loader.stopLoading();
-}, [isLoading, loader]);
-
-return (
-  <div>
-    {loader.renderConditionally(
-      jobs,
-      (jobs) => jobs.map(job => <JobCard key={job.id} job={job} />),
-      () => <JobListSkeleton count={6} />
-    )}
-  </div>
-);
-```
 
 ## 🎨 Theme & Styling
 
