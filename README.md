@@ -5,7 +5,7 @@ A comprehensive full-stack job board application with role-based access control,
 https://drive.google.com/file/d/1jQw8Ll_jEj9DZxeAmMKQn2CtAV7dmMzs/view?usp=sharing
 
 ## video of project
-https://drive.google.com/file/d/1oEFSsYtOsdpCoXtpwmGHUdZM7fv969on/view?usp=sharing
+[https://drive.google.com/file/d/1oEFSsYtOsdpCoXtpwmGHUdZM7fv969on/view?usp=sharing](https://drive.google.com/file/d/1LavUXlc6010ZnNVgI5Gl-GGu2lzaa6Ld/view?usp=sharing)
 ## 🚀 Features
 
 ### 🔐 Authentication & Authorization
